@@ -10,15 +10,13 @@
     let
       pkgsFor = system: import nixpkgs {
         inherit system;
-
-        overlays = [
-          self.overlays.default
-          rust-overlay.overlays.default
-        ];
+        overlays = [ self.overlays.default ];
       };
 
       targetSystems = [ "aarch64-linux" "x86_64-linux" ];
-      mkRustToolchain = pkgs: pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+      mkRustToolchain = pkgs: let
+        rpkgs = pkgs.extend rust-overlay.overlays.default;
+      in rpkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
     in
     {
       overlays.default = final: prev:
@@ -41,14 +39,10 @@
           eww-wayland = final.eww.override { withWayland = true; };
         };
 
-      packages = nixpkgs.lib.genAttrs targetSystems (system:
-        let
-          pkgs = pkgsFor system;
-        in
-        (self.overlays.default pkgs pkgs) // {
-          default = self.packages.${system}.eww;
-        }
-      );
+      packages = nixpkgs.lib.genAttrs targetSystems (system: {
+        inherit (pkgsFor system) eww eww-wayland;
+        default = self.packages.${system}.eww;
+      });
 
       devShells = nixpkgs.lib.genAttrs targetSystems (system:
         let
@@ -72,5 +66,9 @@
           };
         }
       );
+
+      checks = nixpkgs.lib.genAttrs targetSystems (system: {
+        inherit (self.packages.${system}) eww eww-wayland;
+      });
     };
 }
