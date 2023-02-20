@@ -228,13 +228,12 @@ fn build_loop_special_widget(
         Listener {
             needed_variables: widget_use.elements_expr.collect_var_refs(),
             f: Box::new({
-                let custom_widget_invocation = custom_widget_invocation.clone();
-                let widget_defs = widget_defs.clone();
                 let elements_expr = widget_use.elements_expr.clone();
-                let elements_expr_span = widget_use.elements_expr_span.clone();
+                let elements_expr_span = widget_use.elements_expr_span;
                 let element_name = widget_use.element_name.clone();
                 let body: WidgetUse = widget_use.body.as_ref().clone();
                 let created_children = Rc::new(RefCell::new(Vec::<gtk::Widget>::new()));
+                let created_child_scopes = Rc::new(RefCell::new(Vec::<ScopeIndex>::new()));
                 let gtk_container = gtk_container.clone();
                 move |tree, values| {
                     let elements_value = elements_expr
@@ -242,13 +241,18 @@ fn build_loop_special_widget(
                         .as_json_value()?
                         .as_array()
                         .context("Not an array value")?
-                        .into_iter()
+                        .iter()
                         .map(DynVal::from)
                         .collect_vec();
                     let mut created_children = created_children.borrow_mut();
                     for old_child in created_children.drain(..) {
                         unsafe { old_child.destroy() };
                     }
+                    let mut created_child_scopes = created_child_scopes.borrow_mut();
+                    for child_scope in created_child_scopes.drain(..) {
+                        tree.remove_scope(child_scope);
+                    }
+
                     for element in elements_value {
                         let scope = tree.register_new_scope(
                             format!("for {} = {}", element_name.0, element),
@@ -258,6 +262,7 @@ fn build_loop_special_widget(
                                 element_name.clone().into() => SimplExpr::Literal(DynVal(element.0, elements_expr_span))
                             },
                         )?;
+                        created_child_scopes.push(scope);
                         let new_child_widget =
                             build_gtk_widget(tree, widget_defs.clone(), scope, body.clone(), custom_widget_invocation.clone())?;
                         gtk_container.add(&new_child_widget);

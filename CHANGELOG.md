@@ -5,6 +5,12 @@ All notable changes to eww will be listed here, starting at changes since versio
 
 ## [Unreleased]
 
+### Features
+- Add support for safe access (`?.`) in simplexpr (By: oldwomanjosiah)
+- Allow floating-point numbers in percentages for window-geometry
+- Add support for safe access with index (`?.[n]`) (By: ModProg)
+- Made `and`, `or` and `?:` lazily evaluated in simplexpr (By: ModProg)
+
 ## [0.4.0] (04.09.2022)
 
 ### BREAKING CHANGES
@@ -21,6 +27,7 @@ All notable changes to eww will be listed here, starting at changes since versio
 - Fix deflisten scripts not always getting cleaned up properly
 - Add `:round-digits` to scale widget (By: gavynriebau)
 - Fix cirular-progress not properly displaying 100% values when clockwise is false
+- Fix temperatures inside `EWW_TEMPS` not being accessible if at least one value is `NaN`
 
 
 ## 0.3.0 (26.05.2022)
